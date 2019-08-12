@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <title>Lethean EZ VPN</title>
+
+  <link href="./bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="./css/jquery-jvectormap-2.0.3.css" rel="stylesheet">
+  <link href="./css/flag-icon.min.css" rel="stylesheet">
+
+  <!-- Custom styles for this template -->
+  <link href="./css/dashboard.css" rel="stylesheet">
+</head>
+<body>
+<div id="app">
+  <nav class="navbar navbar-dark fixed-top bg-blue flex-md-nowrap p-0 shadow px-3">
+    <a class="navbar-brand" href="#">EZ VPN</a>
+    <ul class="navbar-nav px-3 mr-auto">
+      <li class="nav-item text">
+        <a class="nav-link" href="#">Server</a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="container-fluid mt-5">
+    <div class="row">
+      <nav class="col-sm-3 bg-light sidebar px-3">
+        <div class="text balance">N/A</div>
+        <div class="btn-group btn-group-sm mt-1" role="group" aria-label="Basic example">
+          <button type="button" class="btn btn-outline-primary" v-bind:class="{ active: is_free==null }" v-on:click="is_free=null">All</button>
+          <button type="button" class="btn btn-outline-primary" v-bind:class="{ active: is_free==true }" v-on:click="is_free=true">Free</button>
+          <button type="button" class="btn btn-outline-primary" v-bind:class="{ active: is_free==false }" v-on:click="is_free=false">Pay</button>
+        </div>
+        <div class="form-group mt-1">
+          <input type="text" class="form-control form-control-sm" name="search" v-model="search" placeholder="Search here...">
+        </div>
+        <div class="sidebar-sticky">
+          <ul class="list-unstyled">
+            <li v-for="item in filteredList" class="py-2" v-on:click="alert('You clicked it!')">
+              <span v-bind:class="item.country_flag"></span>
+              <!--<img v-bind:src="item.country_flag" class="rounded-circle mr-2" v-bind:alt="item.country_name"-->
+                   <!--style="height: 1rem; width: 1rem;">-->
+              {{item.country_name}} : {{item.name}}
+            </li>
+          </ul>
+        </div>
+
+      </nav>
+
+      <main role="main" class="col-sm-9 px-0">
+        <div id="map" class="w-100 full-height"></div>
+        <div aria-live="polite" aria-atomic="true"
+             style="position: absolute; bottom: 20px; right: 20px;">
+
+            <!-- Then put toasts within -->
+            <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="toast-info"
+                 data-autohide="false" data-delay="3000">
+              <div class="toast-body p-3">
+                <img src="./img/bars.svg" alt="loading" style="max-height: 30px"> Loading VPN info...
+              </div>
+            </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<script src='./js/jquery-2.2.4.min.js'></script>
+<!--<script src="./js/jquery-2.2.4.min.js"></script>-->
+<script src="./js/popper.min.js"></script>
+<script src="./js/vue.min.js"></script>
+<script src="./bootstrap/js/bootstrap.min.js"></script>
+<script src="./js/jquery-jvectormap-2.0.3.min.js"></script>
+<script src="./js/jquery-jvectormap-world-mill.js"></script>
+<script src="./js/qwebchannel.js"></script>
+
+<script>
+  var vpnSelectionBackend;
+  $(document).ready(function() {
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+      vpnSelectionBackend = channel.objects.vpnSelectionBackend;
+    });
+  });
+  //const is = require('electron-is');
+  // You can also require other files to run in this process
+  //  require('./renderer.js')
+  //render map
+  var app = new Vue({
+    el: '#app',
+    data: {
+      search: '',
+      info: null,
+      is_free: null,
+      vpnMarkers: [],
+      vpnSearchAPI: "https://sdp.staging.cloud.lethean.io/v1/services/search",
+      geoForEndpoint: 'https://nodes.lethean.io/api/v1/nodes/geo/'
+    },
+    computed: {
+      filteredList() {
+        return this.vpnMarkers.filter(item => {
+          if (this.is_free === true){
+            return item.freeService === true;
+          }
+          if (this.is_free === false){
+            return item.freeService === false;
+          }
+          return true;
+        }).filter(item => {
+          return item.name.toLowerCase().includes(this.search.toLowerCase()) ||
+            item.country_name.toLowerCase().includes(this.search.toLowerCase())
+        })
+      }
+    },
+    mounted() {
+      $('#toast-info').toast('show');
+      new jvm.Map({
+        container: $('#map'),
+        map: 'world_mill',
+        backgroundColor: '#bbd2d8',
+        regionStyle: {
+          initial: {
+            fill: '#f1f1f1',
+            "fill-opacity": 1,
+            stroke: 'none',
+            "stroke-width": 0,
+            "stroke-opacity": 1
+          },
+          hover: {
+            "fill-opacity": 0.8,
+            cursor: 'pointer'
+          },
+          selected: {
+            fill: 'yellow'
+          },
+          selectedHover: {}
+        },
+        markerStyle: {
+          initial: {
+            image: "./img/marker.svg"
+          }
+        },
+        onMarkerClick: function (e, code) {
+          console.log('Event: ', e);
+          console.log('Code: ', code);
+//          console.log(vm.vpnMarkers[code]);
+          console.log(vm.vpnMarkers[code].provider);
+
+          var data = {};
+          data["provider_name"] = vm.vpnMarkers[code].name;
+          data["country_name"] = vm.vpnMarkers[code].country_name;
+          vpnSelectionBackend.getVPNSelection(JSON.stringify(data), function(callback) {
+            var result = callback;
+          });
+          vpnSelectionBackend.balanceTextUpdated.connect(function(balanceText, unlockedBalanceText) {
+            console.log("fdasfdasfadsfasdfdas");
+            console.log(balanceText);
+            $(".text.balance").text(balanceText);
+          });
+          //backgroundProcess(vm.vpnMarkers[code].provider)
+        }
+      });
+
+      vm = this;
+
+      //
+      // ADD SAMPLE NODE
+      //
+      vm.vpnMarkers.push({
+        latLng: [49.405, 11.1617],
+        name: "Lethernet DE",
+        freeService: false,
+        provider: null,
+        //endpoint: endpoints[i],
+        country_name: "Germany",
+        country_code: "DE",
+        country_flag: 'flag-icon rounded-circle mr-2 flag-icon-squared flag-icon-de'
+      });
+
+      vm.vpnList = JSON.parse(JSON.stringify(vm.vpnMarkers));
+      map = $('#map').vectorMap('get', 'mapObject');
+      map.addMarkers(vm.vpnMarkers.map(function (h) {
+        return {name: h.name, latLng: h.latLng}
+      }), []);
+
+      //
+      //
+
+      $.getJSON(vm.vpnSearchAPI)
+        .done(function (data) {
+//          console.log("vpnSearchAPI: " + data)
+//          $('#toast-info').toast('hide');
+          $('#toast-info .toast-body').html('<img src="./img/circles.svg" alt="loading" style="max-height: 30px"> Loading map...');
+
+          let providers = [];
+          let deferreds = [];
+          //let endpoints = [];
+
+          // Iterate vpns
+          $.each(data.providers, function (i, item) {
+            if (item.vpn.length > 0) {
+//              console.log(item.providerName + " - " + item.vpn[0].endpoint)
+//              $("#statustext").append("Provider: " + item.providerName + "<br/>")
+              providers.push({name:item.providerName, provider:item.provider, freeService:item.freeService})
+              //endpoints.push(item.vpn[0].endpoint)
+//              toastr.info('Loading map...');
+              deferreds.push(
+                $.ajax({
+                  dataType: "json",
+                  url: vm.geoForEndpoint + item.vpn[0].endpoint,
+                  type: 'GET'
+                })
+              );
+            }
+          });
+
+          // Can't pass a literal array, so use apply.
+          $.when.apply($, deferreds).done(function () {
+           // console.log("then");
+            for (let i = 0; i < arguments.length; i++) {
+              vm.vpnMarkers.push({
+                latLng: [arguments[i][0].lat, arguments[i][0].lng],
+                name: providers[i].name,
+                freeService: providers[i].freeService,
+                provider: providers[i].provider,
+                //endpoint: endpoints[i],
+                country_name: arguments[i][0].country_name,
+                country_code: arguments[i][0].country_code,
+                country_flag: 'flag-icon rounded-circle mr-2 flag-icon-squared flag-icon-' + arguments[i][0].country_code.toLowerCase()
+              })
+            }
+            vm.vpnList = JSON.parse(JSON.stringify(vm.vpnMarkers));
+            // Do your success stuff
+            // add markers
+            map = $('#map').vectorMap('get', 'mapObject');
+            map.addMarkers(vm.vpnMarkers.map(function (h) {
+              return {name: h.name, latLng: h.latLng}
+            }), []);
+
+            $('#toast-info .toast-body').html('Ready!');
+            setTimeout(function () {
+              $('#toast-info').toast('hide');
+            }, 3000)
+//            toastr.success('Ready');
+          }).fail(function () {
+            // Probably want to catch failure
+            $('#toast-info .toast-body').html('Fail load map!');
+//            toastr.error("fail");
+          }).always(function () {
+            // Or use always if you want to do the same thing
+            // whether the call succeeds or fails
+//            console.log("always")
+          });
+        });
+    }
+  });
+
+</script>
+
+</body>
+</html>

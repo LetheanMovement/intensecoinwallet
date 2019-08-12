@@ -1,0 +1,25 @@
+<DOCTYPE html>
+<html>
+<head>
+<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+<meta content="utf-8" http-equiv="encoding">
+</head>
+<body>
+<button onclick="myfun();">Click Me</button>
+</body>
+<script src="./js/qwebchannel.js"></script>
+<script type="text/javascript">
+function myfun() {
+  console.log("Clicked!");
+  new QWebChannel(qt.webChannelTransport, function(channel) {
+    var vpnSelectionBackend = channel.objects.vpnSelectionBackend;
+    
+    var str = "This is my test string. This is treated in Qt C++";
+    console.log(str);
+    vpnSelectionBackend.getVPNSelection(str, function(callback) {
+      var result = callback;
+    });
+  });
+}
+</script>  
+</html>

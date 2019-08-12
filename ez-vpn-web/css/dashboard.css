@@ -1,0 +1,44 @@
+.bd-placeholder-img {
+    font-size: 1.125rem;
+    text-anchor: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.flag-icon-2x {
+    font-size: 1.3rem;
+}
+
+.bg-blue {
+    background: #145079;
+}
+
+.navbar-brand {
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+    font-size: 1rem;
+}
+
+.full-height {
+    height: calc(100vh - 48px);
+}
+
+.sidebar-sticky {
+    max-height: calc(100vh - 135px);
+    overflow-y: auto;
+    font-size: .9rem;
+}
+
+.sidebar-sticky ul li:hover{
+    background: #145079;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+@media (min-width: 768px) {
+    .bd-placeholder-img-lg {
+        font-size: 3.5rem;
+    }
+}

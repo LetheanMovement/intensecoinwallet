@@ -1,0 +1,21 @@
+.jvectormap-legend-inner {
+    margin-bottom: 3px;
+  }
+
+  .jvectormap-legend-cnt-h .jvectormap-legend-tick {
+    width: auto;
+    margin-right: 10px;
+  }
+
+  .jvectormap-legend-cnt-h .jvectormap-legend-tick-text {
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 13px;
+  }
+
+  .jvectormap-legend-cnt-h .jvectormap-legend-tick-sample {
+    width: 32px;
+    height: 32px;
+    display: inline-block;
+    vertical-align: middle;
+  }
